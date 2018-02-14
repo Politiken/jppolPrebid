@@ -1,0 +1,27 @@
+{
+  "name": "jppolprebid",
+  "version": "0.0.1",
+  "description": "Shared prebid.js implementation for JP, EB and POL",
+  "main": "prebid/jppolPrebid.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-prebid": "npm install ./ && npm --prefix ./node_modules/prebid.js/ install ./node_modules/prebid.js && cd ./node_modules/prebid.js;../.bin/gulp build --modules=../../prebid/adapters.json;cd ../../ && cp ./node_modules/prebid.js/build/dist/prebid.js ./node_modules/prebid.js/"
+  },
+  "keywords": [
+    "headerbidding",
+    "prebid.js",
+    "JP",
+    "Jyllands-Posten",
+    "EB",
+    "Ekstra",
+    "Bladet",
+    "POL",
+    "Politiken"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Politiken/jppolPrebid"
+  },
+  "author": "jppol",
+  "license": "ISC"
+}
