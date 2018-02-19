@@ -221,6 +221,7 @@
         // default values adTech values
         var adTechCpm = 0;
         var xhbDeal = false;
+        var kvObject = {};
 
         // get "normal" prebid bid winners
         if (adServerTarget.hasOwnProperty('hb_adid')) {
@@ -260,7 +261,7 @@
 
         // send key/values to dacmodule/AdTech
         if (adTechCpm > 0 || xhbDeal) {
-          var kvObject = {
+          kvObject = {
             prebid: adTechCpm,
             prebidXHB: xhbDeal ? 1 : 0
           };
@@ -286,7 +287,7 @@
       // debug performance finished
       self.debugPerformance ? console.log("performance|bidsBackHandler: Finished.", "milliseconds:", (performance.now() - performanceTestStart), ' | time:', performance.now()) : null;
     },
-    // dacmodule/AdTech, add extra kv to placement
+    // depends od dacmodule.js/AdTech: add extra kv to placement
     dacmoduleAddKvToPlacement: function(placementId, kvObject) {
       // TODO: figure out a more reliable way of getting dacmodule/AdTech placements
       // maybe set window.placements on jppolPrebid-object, inside jppolPrebid.init() ??
@@ -322,11 +323,11 @@
 
         setTimeout(function() {
           console.log('dacmoduleAddKvToPlacement: setTimeout triggered');
-          self.dacmoduleLoadPlacements();
+          self.dacmoduleAddKvToPlacement();
         }, 100);
       }
     },
-    // dacmodule/AdTech, load all placements
+    // depends od dacmodule.js/AdTech: load all placements
     dacmoduleLoadPlacements: function() {
       // performance test
       var self = this;
@@ -334,24 +335,27 @@
 
       // look for dacmodule
       if (window.dacmodule && typeof(window.dacmodule.enqueueAds) === 'function' && typeof(window.pageConfigParams) === 'object' && window.placements.length) {
+        var placementsToLoad = window.placements.slice();
+
         if (/complete|loaded|interactive/.test(document.readyState)) {
-          window.dacmodule.enqueueAds(window.pageConfigParams, placements);
+          window.dacmodule.enqueueAds(window.pageConfigParams, placementsToLoad);
         } else {
           document.addEventListener('DOMContentLoaded', function() {
-            window.dacmodule.enqueueAds(window.pageConfigParams, placements);
+            window.dacmodule.enqueueAds(window.pageConfigParams, placementsToLoad);
           });
         }
         // debug performance finished
         this.debugPerformance ? console.log("performance|dacmoduleLoadPlacements: Finished.", "milliseconds:", (performance.now() - performanceTestStart)) : null;
+
       } else {
         this.debug ? console.log('dacmoduleLoadPlacements: failed to load ads') : null;
         setTimeout(function() {
           console.log('dacmoduleLoadPlacements: setTimeout triggered');
-          self.dacmoduleAddKvToPlacement();
+          self.dacmoduleLoadPlacements();
         }, 100);
       }
     },
-    // dacmodule/AdTech, callback to check if prebid won
+    // depends od dacmodule.js/AdTech: callback to check if prebid won
     dacmodulePlacementCallback: function(placementId) {
       // look for placement in DOM
       var placement = document.getElementById(placementId);
@@ -409,7 +413,6 @@
         bannerTypes: this.bannerTypes,
         loadTimes: this.loadTimes
       };
-      console.log('init: config:', config, 'defaultConfig:', defaultConfig);
       // set device, can be done by merging config
       window.polContext__.page.deviceType ? this.deviceType = window.polContext__.page.deviceType : null;
 

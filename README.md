@@ -47,7 +47,7 @@ This will initialize jppol with optional `config`-parameters
 If `loadTime` is not defined, it will default to `pageLoad`, meaning when DOM content is ready.
 ### hideOnTablet
 This parameter is probably only useful for Politiken.dk and should probably be removed from the jppolPrebid-object and added as "custom"-parameter.
-### Example
+### Examples
 ```
 var adUnitParams = {
   // general params
@@ -68,6 +68,34 @@ var adUnitParams = {
 };
 jppolPrebid.createAdUnit(adUnitParams);
 ```
+or with performance logging:
+```
+;(function() {
+  // create prebid adUnit
+  if (window.jppolPrebid) {
+    var performanceTestStart = jppolPrebid.debugPerformance ? performance.now() : null;
+    var adUnitParams = {
+      // general params
+      loadTime: '${ad.content.loadtime}',
+      hideOnTablet: '${ad.content.hiddenOnTablets}',            
+      // prebid specific
+      prebid: {
+        code: '${model.adLabel}',
+        type: '${ad.content.prebidType}',
+        bidders: {
+          adform: '${model.adformId}',
+          rubicon: '${ad.content.rubiconId}',
+          pubmatic: '${ad.content.pubmaticId}',
+          xaxis: '${ad.content.xaxisId}',
+          criteo: '${ad.content.criteoId}'
+        }
+      }
+    };
+    jppolPrebid.createAdUnit(adUnitParams);
+    jppolPrebid.debugPerformance ? console.log('performance|createAdUnit: Finished.', "milliseconds:", (performance.now() - performanceTestStart), '| time:', performance.now()) : null;
+  }
+})();
+```
 
 
 
@@ -83,18 +111,29 @@ and has to do with event-timing and DOM-timing.
 ## URL params
 Debugging can be turned simply by using the following query string: `?prebiddebug`.
 And the for performance/timing debugging, with the following query string: `?prebidperformance`.
-This can be very useful for debugging on the fly and when troubleshooting in live environments.
-Note that query string are all lowercase and no value is needed.
-### Example
-`https://politiken.dk/?prebiddebug&prebidperformance`
+This can be very useful for debugging on the fly and when troubleshooting in live-environments.
+Note that query strings are all lowercase.
 
-## Enable with 'config'-object
+Example: `https://politiken.dk/?prebiddebug&prebidperformance`
+
+### prebiddebug
+`?prebiddebug`: Will show all main event and errors in the console.
+
+### prebidperformance
+`?prebidperformance`: Logs timing for events
+
+### prebidcpm
+`?prebidcpm=<value>`: This will set a fixed cpm for each winning bid that is sent to AdTech, useful for forcing "winning"-bids. (`<value>` is *required* and should be an *integer*).
+
+## Enable with debugging with 'config'-object
 When working in dev-environments you can turn on "debug" and "performance debugging" when jppolPrebid is initialized with `config`-objcet.
+
 ### Example
 ```
 var config = {
 	debug: true,
 	debugPerformance: true,
+  adtechFixedCpm: 1000
 };
 jppolPrebid.init(config);
 ```
