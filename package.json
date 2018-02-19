@@ -6,9 +6,13 @@
   "dependencies": {
     "prebid.js": "^0.34.0"
   },
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "uglify-js": "^3.0.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-prebid": "npm install ./ && npm --prefix ./node_modules/prebid.js/ install ./node_modules/prebid.js && cd ./node_modules/prebid.js;../.bin/gulp build --modules=../../prebid/adapters.json;cd ../../ && cp ./node_modules/prebid.js/build/dist/prebid.js ./node_modules/prebid.js/"
+    "build-prebid": "npm install ./ && npm --prefix ./node_modules/prebid.js/ install ./node_modules/prebid.js && cd ./node_modules/prebid.js;../.bin/gulp build --modules=../../prebid/bidderAdapters.json;cd ../../ && cp ./node_modules/prebid.js/build/dist/prebid.js ./prebid/"
   },
   "keywords": [
     "headerbidding",
