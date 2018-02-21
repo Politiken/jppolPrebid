@@ -211,7 +211,6 @@
       // find bids
       var winningBids = pbjs.getHighestCpmBids();
       var adServerTargets = pbjs.getAdserverTargeting();
-      var bidResponses = pbjs.getBidResponses();
 
       // loop bids
       for (var key in adServerTargets) {
@@ -717,8 +716,8 @@
 
             // look for custom deals
             if (adStatus.hasOwnProperty('adTechData')) {
-              xhbDeal = (adStatus.adTechData.hasOwnProperty('prebidXHB') && b.bidder === "xhb") ? adStatus.adTechData['prebidXHB'] : 0;
-              adformDeal = (adStatus.adTechData.hasOwnProperty('hb_deal_adform') && b.bidder === "adform") ? adStatus.adTechData['hb_deal_adform'] : '';
+              xhbDeal = (adStatus.adTechData.hasOwnProperty('prebidXHB') && b.bidder === "xhb") ? adStatus.adTechData.prebidXHB : 0;
+              adformDeal = (adStatus.adTechData.hasOwnProperty('hb_deal_adform') && b.bidder === "adform") ? adStatus.adTechData.hb_deal_adform : '';
             }
 
             output.push({
@@ -764,8 +763,8 @@
 
         // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
-          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData['hb_deal_adform'] : '';
+          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData.prebidXHB : 0;
+          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData.hb_deal_adform : '';
         }
 
         output.push({
@@ -808,8 +807,8 @@
 
         // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
-          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData['hb_deal_adform'] : '';
+          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData.prebidXHB : 0;
+          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData.hb_deal_adform : '';
         }
 
         output.push({
@@ -932,7 +931,6 @@
           // get DOM element container for ad and clean-up container
           var container = document.getElementById(adUnitCode);
           var prebidContainer = container.getElementsByClassName('prebidPlaceholder')[0] || container.getElementsByClassName('prebidPlaceholder_xhb')[0];
-          //var prebidContainer = container.querySelectorAll('.prebidPlaceholder, .prebidPlaceholder_xhb')[0];
           if (prebidContainer) {
             while (prebidContainer.firstChild) {
               prebidContainer.removeChild(prebidContainer.firstChild);
