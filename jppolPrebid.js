@@ -7,7 +7,7 @@
     debugPerformance: false,
     adtechFixedCpm: false,
     deviceType: 'desktop',
-    prebidTimeout: 800,
+    prebidTimeout: 1200,
     // prebidConfig: http://prebid.org/dev-docs/publisher-api-reference.html#module_pbjs.setConfig
     prebidConfig: {
       debug: false,
@@ -15,7 +15,7 @@
       cookieSyncDelay: 100,
       publisherDomain: "https://politiken.dk",
       priceGranularity: "medium",
-      enableSendAllBids: false
+      enableSendAllBids: true
     },
     // bidderAdapters: http://prebid.org/dev-docs/bidder-adaptor.html
     bidderAdapters: {
@@ -211,6 +211,7 @@
       // find bids
       var winningBids = pbjs.getHighestCpmBids();
       var adServerTargets = pbjs.getAdserverTargeting();
+      var bidResponses = pbjs.getBidResponses();
 
       // loop bids
       for (var key in adServerTargets) {
@@ -221,6 +222,7 @@
         // default values adTech values
         var adTechCpm = 0;
         var xhbDeal = false;
+        var adformDeal = '';
         var kvObject = {};
 
         // get "normal" prebid bid winners
@@ -241,6 +243,7 @@
         }
 
         // check for XHB deal on this bid
+        // TODO: If possible, handle this like we handle adform deals
         if (adServerTarget.hasOwnProperty('hb_xhb_adid') && adServerTarget.hasOwnProperty('hb_xhb_deal')) {
           xhbDeal = (adServerTarget['hb_xhb_deal'] === '99999999');
 
@@ -257,13 +260,20 @@
           }
         }
 
-        self.debug ? console.log('bidsBackHandler: adUnitCode:', adUnitCode, 'xhbDeal', xhbDeal, 'adTechCpm', adTechCpm) : null;
+        // check for AdForm deal on this bid
+        // NOTE: this only works when pbjs.setConfig enableSendAllBids is true
+        if (adServerTarget.hasOwnProperty('hb_bidder_adform') && adServerTarget.hasOwnProperty('hb_deal_adform')) {
+          adformDeal = adServerTarget.hb_deal_adform;
+        }
+
+        self.debug ? console.log('bidsBackHandler: adUnitCode:', adUnitCode, 'adTechCpm:', adTechCpm, 'xhbDeal:', xhbDeal, 'hb_deal_adform:', adformDeal) : null;
 
         // send key/values to dacmodule/AdTech
-        if (adTechCpm > 0 || xhbDeal) {
+        if (adTechCpm > 0 || xhbDeal || adformDeal) {
           kvObject = {
             prebid: adTechCpm,
-            prebidXHB: xhbDeal ? 1 : 0
+            prebidXHB: xhbDeal ? 1 : 0,
+            hb_deal_adform: adformDeal
           };
           adStatus['adTechData'] = kvObject;
           self.debug ? console.log('bidsBackHandler: Adding kvObject to adTech placement.', 'kvObject:', kvObject) : null;
@@ -702,9 +712,13 @@
 
           for (var i = 0; i < bids.length; i++) {
             var b = bids[i];
-            var prebidXhb = 0;
+            var xhbDeal = 0;
+            var adformDeal = '';
+
+            // look for custom deals
             if (adStatus.hasOwnProperty('adTechData')) {
-              prebidXhb = (adStatus.adTechData.hasOwnProperty('prebidXHB') && b.bidder === "xhb") ? adStatus.adTechData['prebidXHB'] : 0;
+              xhbDeal = (adStatus.adTechData.hasOwnProperty('prebidXHB') && b.bidder === "xhb") ? adStatus.adTechData['prebidXHB'] : 0;
+              adformDeal = (adStatus.adTechData.hasOwnProperty('hb_deal_adform') && b.bidder === "adform") ? adStatus.adTechData['hb_deal_adform'] : '';
             }
 
             output.push({
@@ -712,8 +726,9 @@
               adId: b.adId,
               bidder: b.bidder,
               cpm: b.cpm,
-              adTechPrebid: this.getAdtechCpm(b.cpm),
-              adTechXhb: prebidXhb,
+              adtech_cpm: this.getAdtechCpm(b.cpm),
+              adform_deal: adformDeal,
+              xhb_deal: xhbDeal,
               time: b.timeToRespond,
               msg: b.statusMessage
             });
@@ -744,9 +759,13 @@
       for (var i = 0; i < bids.length; i++) {
         var b = bids[i];
         var adStatus = this.adUnitsStatus[b.adUnitCode];
-        var prebidXhb = 0;
+        var xhbDeal = 0;
+        var adformDeal = '';
+
+        // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          prebidXhb = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
+          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
+          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData['hb_deal_adform'] : '';
         }
 
         output.push({
@@ -754,8 +773,9 @@
           adId: b.adId,
           bidder: b.bidder,
           cpm: b.cpm,
-          adTechPrebid: this.getAdtechCpm(b.cpm),
-          adTechXhb: prebidXhb,
+          adtech_cpm: this.getAdtechCpm(b.cpm),
+          adform_deal: adformDeal,
+          xhb_deal: xhbDeal,
           time: b.timeToRespond
         });
       }
@@ -783,9 +803,13 @@
       for (var i = 0; i < bids.length; i++) {
         var b = bids[i];
         var adStatus = this.adUnitsStatus[b.adUnitCode];
-        var prebidXhb = 0;
+        var xhbDeal = 0;
+        var adformDeal = '';
+
+        // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          prebidXhb = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
+          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData['prebidXHB'] : 0;
+          adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData['hb_deal_adform'] : '';
         }
 
         output.push({
@@ -793,8 +817,9 @@
           adId: b.adId,
           bidder: b.bidder,
           cpm: b.cpm,
-          adTechPrebid: this.getAdtechCpm(b.cpm),
-          adTechXhb: prebidXhb,
+          adtech_cpm: this.getAdtechCpm(b.cpm),
+          adform_deal: adformDeal,
+          xhb_deal: xhbDeal,
           time: b.timeToRespond
         });
       }
@@ -838,6 +863,28 @@
       }
 
       return array;
+    },
+    // TODO: custom functions for debugging, needs to accept multiple strings
+    log: function(string, type) {
+      if (this.debug) {
+        if (type) {
+
+        } else {
+          // default logging
+          console.log(string);
+        }
+      }
+    },
+    // TODO: custom functions for debugging, needs to accept multiple strings
+    logPerformance: function(string, type) {
+      if (this.debug) {
+        if (type) {
+          // TODO: logging types, error, warning, etc.
+        } else {
+          // default logging
+          console.log(string);
+        }
+      }
     },
     logArrayOfObjectsAsTable: function(array) {
       if (Array.isArray(array) && array.length) {
