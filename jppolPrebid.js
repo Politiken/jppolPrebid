@@ -30,8 +30,8 @@
       // Rubicon: http://prebid.org/dev-docs/bidders.html#rubicon
       rubicon: {
         accountId: 10093,
-        siteIdPhone: 167670,
-        siteIdTablet: 167670,
+        siteIdMobile: 167670,
+        siteIdTablet: 167672,
         siteIdDesktop: 167672,
         sizeMap: {
           1: '468x60',
@@ -85,11 +85,11 @@
     // banner types and corresponding sizes
     bannerTypes: {
       megaboard: [[930, 180]],
-      skyscraper: [[160, 600], [300, 600]],
+      skyscraper: [[160, 600]],
       monster: [[930, 180], [930, 600]],
       rectangle: [[300, 250]],
-      halfpage: [[160, 600], [300, 600]],
-      swedish: [[160, 320], [250, 320], [320, 320]]
+      halfpage: [[300, 250], [300, 600]],
+      swedish: [[300, 250], [320, 160], [320, 320]]
     },
     // TODO: IMPLEMENT THIS or find a better method
     // banner load times, used in renderPrebidAd()
@@ -214,6 +214,11 @@
 
       // loop bids
       for (var key in adServerTargets) {
+        // skip when there are no valid bids
+        if (key === "undefined") {
+          continue;
+        }
+
         var adUnitCode = key;
         var adServerTarget = adServerTargets[adUnitCode];
         var adStatus = self.adUnitsStatus[adUnitCode];
@@ -542,8 +547,8 @@
                   case 'rubicon':
                     var rubiconSiteId;
                     switch (this.deviceType) {
-                      case 'smartphone':
-                        rubiconSiteId = this.bidderAdapters.rubicon.siteIdPhone;
+                      case 'mobile':
+                        rubiconSiteId = this.bidderAdapters.rubicon.siteIdMobile;
                         break;
                       case 'tablet':
                         rubiconSiteId = this.bidderAdapters.rubicon.siteIdTablet;
@@ -1068,4 +1073,7 @@
       }
     }
   };
+
+  // TODO: fix init()
+  window.jppolPrebid.init();
 }(window));
