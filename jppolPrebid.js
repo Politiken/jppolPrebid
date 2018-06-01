@@ -14,13 +14,25 @@
       bidderTimeout: 3000,
       cookieSyncDelay: 100,
       publisherDomain: "https://politiken.dk",
-      priceGranularity: "medium",
-      enableSendAllBids: true
+      priceGranularity: "high",
+      enableSendAllBids: true,
+      consentManagement: {
+        cmpApi: 'iab',
+        timeout: 9000,
+        allowAuctionWithoutConsent: true
+      },
+      userSync: {
+        iframeEnabled: true,
+        enabledBidders: ['pubmatic'],
+        syncDelay: 6000
+     }
     },
     // bidderAdapters: http://prebid.org/dev-docs/bidder-adaptor.html
     bidderAdapters: {
       // AdForm: http://prebid.org/dev-docs/bidders.html#adform
       adform: {},
+      // AppNexus: http://prebid.org/dev-docs/bidders.html#appnexus
+      appnexus: {},
       // Criteo: http://prebid.org/dev-docs/bidders.html#criteo
       criteo: {},
       // PubMatic: http://prebid.org/dev-docs/bidders.html#pubmatic
@@ -225,7 +237,6 @@
 
         // default values adTech values
         var adTechCpm = 0;
-        var xhbDeal = false;
         var adformDeal = '';
         var kvObject = {};
 
@@ -246,37 +257,18 @@
           }
         }
 
-        // check for XHB deal on this bid
-        // TODO: If possible, handle this like we handle adform deals
-        if (adServerTarget.hasOwnProperty('hb_xhb_adid') && adServerTarget.hasOwnProperty('hb_xhb_deal')) {
-          xhbDeal = (adServerTarget['hb_xhb_deal'] === '99999999');
-
-          if (xhbDeal) {
-            var xhbBids = pbjs.getBidResponsesForAdUnitCode(adUnitCode.toString());
-
-            if (xhbBids.bids.length) {
-              var xhbWinner = xhbBids.bids.find(function(obj) {return obj['bidder'] === 'xhb';});
-              // store xhb bid for later use
-              if (xhbWinner && typeof(adStatus) === 'object' && adStatus.hasOwnProperty('xhbBid')) {
-                adStatus['xhbBid'] = xhbWinner;
-              }
-            }
-          }
-        }
-
         // check for AdForm deal on this bid
         // NOTE: this only works when pbjs.setConfig enableSendAllBids is true
         if (adServerTarget.hasOwnProperty('hb_bidder_adform') && adServerTarget.hasOwnProperty('hb_deal_adform')) {
           adformDeal = adServerTarget.hb_deal_adform;
         }
 
-        self.debug ? console.log('bidsBackHandler: adUnitCode:', adUnitCode, 'adTechCpm:', adTechCpm, 'xhbDeal:', xhbDeal, 'hb_deal_adform:', adformDeal) : null;
+        self.debug ? console.log('bidsBackHandler: adUnitCode:', adUnitCode, 'adTechCpm:', adTechCpm, 'hb_deal_adform:', adformDeal) : null;
 
         // send key/values to dacmodule/AdTech
-        if (adTechCpm > 0 || xhbDeal || adformDeal) {
+        if (adTechCpm > 0 || adformDeal) {
           kvObject = {
             prebid: adTechCpm,
-            prebidXHB: xhbDeal ? 1 : 0,
             hb_deal_adform: adformDeal
           };
           adStatus['adTechData'] = kvObject;
@@ -375,19 +367,12 @@
       var placement = document.getElementById(placementId);
       if (placement) {
         var winningBid = null;
-        var prebidNormal = placement.getElementsByClassName('prebidPlaceholder');
-        var prebidXhb = placement.getElementsByClassName('prebidPlaceholder_xhb');
+        var prebid = placement.getElementsByClassName('prebidPlaceholder');
 
-        if (prebidNormal.length || prebidXhb.length) {
-
+        if (prebid.length) {
           // get winning bid
-          if (prebidNormal.length) {
-            this.debug ? console.log('dacmodulePlacementCallback: Render placement as PREBID.', 'placementId:', placementId, 'placement:', placement) : null;
-            winningBid = this.adUnitsStatus[placementId]['highestBid'];
-          } else if (prebidXhb.length) {
-            this.debug ? console.log('dacmodulePlacementCallback: Render placement as XHB.', 'placementId:', placementId, 'placement:', placement) : null;
-            winningBid = this.adUnitsStatus[placementId]['xhbBid'];
-          }
+          this.debug ? console.log('dacmodulePlacementCallback: Render placement as PREBID.', 'placementId:', placementId, 'placement:', placement) : null;
+          winningBid = this.adUnitsStatus[placementId]['highestBid'];
 
           // render as prebid
           if (typeof(winningBid) === 'object' && winningBid !== null) {
@@ -536,7 +521,7 @@
                       adUnit.bids.push({
                         bidder: 'pubmatic',
                         params: {
-                          publisherId: this.bidderAdapters.pubmatic.publisherId,
+                          publisherId: this.bidderAdapters.pubmatic.publisherId.toString(),
                           adSlot: this.getAdSlotPubmatic(size[0], size[1], id)
                         }
                       });
@@ -569,12 +554,20 @@
                   // Xaxis
                   // Link: http://prebid.org/dev-docs/bidders.html#xaxis
                   case 'xaxis':
+                    // TODO: Using xaxis as AppNexus-adapter
                     adUnit.bids.push({
-                      bidder: 'xhb',
+                      bidder: 'appnexus',
                       params: {
-                        placementId: parseInt(id)
+                        placementId: id
                       }
                     });
+                    // TODO: DISABLED ATM, WAITING FOR NEW PREBID VERSION
+//                    adUnit.bids.push({
+//                      bidder: 'xhb',
+//                      params: {
+//                        placementId: parseInt(id)
+//                      }
+//                    });
                     break;
                   default:
                     console.log('createAdUnit: No matching case for "key".', 'key:', key);
@@ -716,12 +709,10 @@
 
           for (var i = 0; i < bids.length; i++) {
             var b = bids[i];
-            var xhbDeal = 0;
             var adformDeal = '';
 
             // look for custom deals
             if (adStatus.hasOwnProperty('adTechData')) {
-              xhbDeal = (adStatus.adTechData.hasOwnProperty('prebidXHB') && b.bidder === "xhb") ? adStatus.adTechData.prebidXHB : 0;
               adformDeal = (adStatus.adTechData.hasOwnProperty('hb_deal_adform') && b.bidder === "adform") ? adStatus.adTechData.hb_deal_adform : '';
             }
 
@@ -732,7 +723,6 @@
               cpm: b.cpm,
               adtech_cpm: this.getAdtechCpm(b.cpm),
               adform_deal: adformDeal,
-              xhb_deal: xhbDeal,
               time: b.timeToRespond,
               msg: b.statusMessage
             });
@@ -763,12 +753,10 @@
       for (var i = 0; i < bids.length; i++) {
         var b = bids[i];
         var adStatus = this.adUnitsStatus[b.adUnitCode];
-        var xhbDeal = 0;
         var adformDeal = '';
 
         // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData.prebidXHB : 0;
           adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData.hb_deal_adform : '';
         }
 
@@ -779,7 +767,6 @@
           cpm: b.cpm,
           adtech_cpm: this.getAdtechCpm(b.cpm),
           adform_deal: adformDeal,
-          xhb_deal: xhbDeal,
           time: b.timeToRespond
         });
       }
@@ -807,12 +794,10 @@
       for (var i = 0; i < bids.length; i++) {
         var b = bids[i];
         var adStatus = this.adUnitsStatus[b.adUnitCode];
-        var xhbDeal = 0;
         var adformDeal = '';
 
         // look for custom deals
         if (adStatus.hasOwnProperty('adTechData')) {
-          xhbDeal = adStatus.adTechData.hasOwnProperty('prebidXHB') ? adStatus.adTechData.prebidXHB : 0;
           adformDeal = adStatus.adTechData.hasOwnProperty('hb_deal_adform') ? adStatus.adTechData.hb_deal_adform : '';
         }
 
@@ -823,7 +808,6 @@
           cpm: b.cpm,
           adtech_cpm: this.getAdtechCpm(b.cpm),
           adform_deal: adformDeal,
-          xhb_deal: xhbDeal,
           time: b.timeToRespond
         });
       }
@@ -958,20 +942,6 @@
           iframe.addEventListener('load', function () {
             iframeDoc.body.setAttribute('style', style);
           }, false);
-
-          // TESTING LOAD TIME
-          /*
-          if (typeof(loadTime) === 'string' && loadTime !== '') {
-            console.log('this.loadTimes:', this.loadTimes);
-            console.log('this.loadTimes.hasOwnProperty(loadTime):', this.loadTimes.hasOwnProperty(loadTime));
-            console.log('this.loadTimes is function:', typeof(this.loadTimes[loadTime]) === 'function');
-            if (this.loadTimes.hasOwnProperty(loadTime) && typeof(this.loadTimes[loadTime]) === 'function') {
-              this.loadTimes[loadTime](iframeDoc, bid);
-            } else {
-              this.debug ? console.log('LOAD TIME NOT FOUND: loadtime:', loadTime) : null;
-            }
-          }
-          */
 
           // render ad, determined by loadTime
           switch (loadTime) {

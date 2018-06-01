@@ -2,6 +2,7 @@
     "adformBidAdapter",
     "rubiconBidAdapter",
     "pubmaticBidAdapter",
-    "xhbBidAdapter",
-    "criteoBidAdapter"
+    "criteoBidAdapter",
+    "appnexusBidAdapter",
+    "consentManagement"
 ]
